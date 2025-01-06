@@ -4,7 +4,7 @@ if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
 endif(COMMAND cmake_policy)
 
-project(amd_monitor)
+project(amdgpu-top)
 
 # Find required packages
 find_package(ftxui REQUIRED)
@@ -13,7 +13,7 @@ pkg_check_modules(DRM REQUIRED libdrm)
 pkg_check_modules(AMDGPU REQUIRED libdrm_amdgpu)
 
 # Create executable
-add_executable(amd_monitor 
+add_executable(amdgpu-top 
     src/main.cpp
     src/layout.cpp
     src/gpu_stats.cpp
@@ -23,7 +23,7 @@ add_executable(amd_monitor
 )
 
 # Link libraries
-target_link_libraries(amd_monitor
+target_link_libraries(amdgpu-top
     PRIVATE ftxui::screen
     PRIVATE ftxui::dom
     PRIVATE ftxui::component
@@ -33,7 +33,7 @@ target_link_libraries(amd_monitor
 )
 
 # Include directories
-target_include_directories(amd_monitor PRIVATE
+target_include_directories(amdgpu-top PRIVATE
     ${DRM_INCLUDE_DIRS}
     ${AMDGPU_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -41,4 +41,4 @@ target_include_directories(amd_monitor PRIVATE
 )
 
 # Enable C++17
-target_compile_features(amd_monitor PRIVATE cxx_std_17) 
+target_compile_features(amdgpu-top PRIVATE cxx_std_17) 
