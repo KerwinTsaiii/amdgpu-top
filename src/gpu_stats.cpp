@@ -6,6 +6,12 @@
 #include <dirent.h>
 #include <fstream>
 #include "amdgpu_ids.hpp"
+#include <libdrm/amdgpu_drm.h>
+#include <sys/stat.h>
+#include <sys/sysmacros.h>  // for major()
+#include <fcntl.h>
+#include "process_info.hpp"
+#include <map>
 
 GPUStats::GPUStats() : fd(-1), device(nullptr), version(nullptr) {}
 
@@ -90,58 +96,8 @@ GPUStats::Stats GPUStats::getStats() {
         stats.memory_clock = value;
     }
 
-    // Get process information
-    drmDevicePtr devices[64];
-    int num_devices = drmGetDevices2(0, devices, 64);
-    
-    for (int i = 0; i < num_devices; i++) {
-        if (devices[i]->available_nodes & 1 << DRM_NODE_RENDER) {
-            // Read process information from /proc
-            DIR *proc_dir = opendir("/proc");
-            if (proc_dir) {
-                struct dirent *entry;
-                while ((entry = readdir(proc_dir))) {
-                    if (entry->d_type == DT_DIR && isdigit(entry->d_name[0])) {
-                        ProcessInfo proc_info = {0};
-                        proc_info.pid = std::stoi(entry->d_name);
-                        
-                        // Read process name
-                        std::string comm_path = "/proc/" + std::string(entry->d_name) + "/comm";
-                        std::ifstream comm_file(comm_path);
-                        if (comm_file) {
-                            std::getline(comm_file, proc_info.name);
-                        }
-
-                        // Read GPU usage from fdinfo
-                        std::string fdinfo_path = "/proc/" + std::string(entry->d_name) + "/fdinfo";
-                        DIR *fd_dir = opendir(fdinfo_path.c_str());
-                        if (fd_dir) {
-                            struct dirent *fd_entry;
-                            while ((fd_entry = readdir(fd_dir))) {
-                                // Check DRM usage
-                                std::string fd_path = fdinfo_path + "/" + fd_entry->d_name;
-                                std::ifstream fd_file(fd_path);
-                                std::string line;
-                                while (std::getline(fd_file, line)) {
-                                    if (line.find("drm-engine-gfx") != std::string::npos) {
-                                        proc_info.gpu_usage = 1.0f; // Process is using GPU
-                                    }
-                                }
-                            }
-                            closedir(fd_dir);
-                        }
-                        
-                        if (proc_info.gpu_usage > 0) {
-                            stats.processes.push_back(proc_info);
-                        }
-                    }
-                }
-                closedir(proc_dir);
-            }
-            break;
-        }
-    }
-    drmFreeDevices(devices, num_devices);
+    // Update process information
+    stats.processes = ProcessMonitor::getProcesses(device, stats.gpu_usage);
 
     return stats;
 }
@@ -159,8 +115,8 @@ const char* GPUStats::getMarketName() const {
         for (size_t i = 0; i < gs_cardInfoSize; i++) {
             const auto& id = gs_cardInfo[i];
             if (gpu_info.asic_id == id.m_deviceID && gpu_info.pci_rev_id == id.m_revID) {
-                snprintf(buf, sizeof(buf), "%s [0x%04X:0x%02X]", 
-                        id.m_szMarketingName, id.m_deviceID, id.m_revID);
+                snprintf(buf, sizeof(buf), "%s [0x%04lX:0x%02lX]", 
+                        id.m_szMarketingName, (unsigned long)id.m_deviceID, (unsigned long)id.m_revID);
                 return buf;
             }
         }
@@ -169,8 +125,8 @@ const char* GPUStats::getMarketName() const {
         for (size_t i = 0; i < gs_cardInfoSize; i++) {
             const auto& id = gs_cardInfo[i];
             if (gpu_info.asic_id == id.m_deviceID) {
-                snprintf(buf, sizeof(buf), "%s [0x%04X:0x%02X]", 
-                        id.m_szMarketingName, id.m_deviceID, gpu_info.pci_rev_id);
+                snprintf(buf, sizeof(buf), "%s [0x%04lX:0x%02lX]", 
+                        id.m_szMarketingName, (unsigned long)id.m_deviceID, (unsigned long)gpu_info.pci_rev_id);
                 return buf;
             }
         }

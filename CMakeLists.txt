@@ -1,4 +1,9 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.12)
+
+if(COMMAND cmake_policy)
+    cmake_policy(SET CMP0003 NEW)
+endif(COMMAND cmake_policy)
+
 project(amd_monitor)
 
 # Find required packages
@@ -12,6 +17,7 @@ add_executable(amd_monitor
     src/main.cpp
     src/layout.cpp
     src/gpu_stats.cpp
+    src/process_info.cpp
     device_info/DeviceInfo.cpp
     device_info/DeviceInfoUtils.cpp
 )

@@ -81,10 +81,11 @@ Element Layout::renderProcessTable(const GPUStats::Stats& stats) {
         hbox(std::vector<Element>{
             text("PID") | size(WIDTH, EQUAL, 8),
             text("Process") | size(WIDTH, EQUAL, 20),
-            text("GPU%") | size(WIDTH, EQUAL, 8),
-            text("Memory") | size(WIDTH, EQUAL, 10),
-            text("Encode") | size(WIDTH, EQUAL, 8),
-            text("Decode") | size(WIDTH, EQUAL, 8)
+            text("GFX%") | size(WIDTH, EQUAL, 8),
+            text("CMP%") | size(WIDTH, EQUAL, 8),
+            text("ENC%") | size(WIDTH, EQUAL, 8),
+            text("DEC%") | size(WIDTH, EQUAL, 8),
+            text("VRAM") | size(WIDTH, EQUAL, 10)
         }) | bold
     );
 
@@ -93,10 +94,12 @@ Element Layout::renderProcessTable(const GPUStats::Stats& stats) {
             hbox(std::vector<Element>{
                 text(std::to_string(proc.pid)) | size(WIDTH, EQUAL, 8),
                 text(proc.name) | size(WIDTH, EQUAL, 20),
-                text(std::to_string((int)proc.gpu_usage) + "%") | size(WIDTH, EQUAL, 8),
-                text(std::to_string(proc.memory_usage / 1024 / 1024) + " MB") | size(WIDTH, EQUAL, 10),
-                text(std::to_string(proc.enc_usage) + "%") | size(WIDTH, EQUAL, 8),
-                text(std::to_string(proc.dec_usage) + "%") | size(WIDTH, EQUAL, 8)
+                text(proc.gfx_usage > 0 ? std::to_string((int)proc.gfx_usage) + "%" : "-") | size(WIDTH, EQUAL, 8),
+                text(proc.compute_usage > 0 ? std::to_string((int)proc.compute_usage) + "%" : "-") | size(WIDTH, EQUAL, 8),
+                text(proc.enc_usage > 0 ? std::to_string((int)proc.enc_usage) + "%" : "-") | size(WIDTH, EQUAL, 8),
+                text(proc.dec_usage > 0 ? std::to_string((int)proc.dec_usage) + "%" : "-") | size(WIDTH, EQUAL, 8),
+                text(std::to_string((int)(proc.memory_usage / (1024*1024))) + " MB") | 
+                    size(WIDTH, EQUAL, 10)
             })
         );
     }
