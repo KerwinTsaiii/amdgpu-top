@@ -69,6 +69,12 @@ Element Layout::renderInformation(const GPUStats::Stats& stats) {
     info_elements.push_back(
         text("VRAM: " + std::to_string((int)stats.memory_used) + " MB / " + 
              std::to_string((int)stats.memory_total) + " MB")
+
+    );
+
+    info_elements.push_back(
+        text("VRAM CPU Accessible: " + std::to_string((int)stats.memory_cpu_accessible_used) + " MB / " + 
+             std::to_string((int)stats.memory_cpu_accessible_total) + " MB")
     );
 
     return vbox(info_elements) | border;

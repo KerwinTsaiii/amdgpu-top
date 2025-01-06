@@ -83,6 +83,8 @@ GPUStats::Stats GPUStats::getStats() {
     if (amdgpu_query_info(device, AMDGPU_INFO_MEMORY, 
                         sizeof(memory_info), &memory_info) == 0) {
         stats.memory_total = memory_info.vram.total_heap_size / (1024.0 * 1024.0);
+        stats.memory_cpu_accessible_total = memory_info.cpu_accessible_vram.total_heap_size / (1024.0 * 1024.0);
+        stats.memory_cpu_accessible_used = memory_info.cpu_accessible_vram.heap_usage / (1024.0 * 1024.0);
         stats.memory_used = memory_info.vram.heap_usage / (1024.0 * 1024.0);
     }
 

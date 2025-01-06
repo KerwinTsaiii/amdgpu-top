@@ -14,6 +14,8 @@ public:
         float gpu_usage = 0;
         float memory_used = 0;
         float memory_total = 0;
+        float memory_cpu_accessible_total = 0;
+        float memory_cpu_accessible_used = 0;
         uint32_t temperature = 0;
         uint32_t power_usage = 0;
         uint32_t fan_speed = 0;
