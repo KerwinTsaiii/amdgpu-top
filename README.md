@@ -1,1 +1,36 @@
 # amdgpu-top
+
+`amdgpu-top` is a tool for monitoring AMD GPU usage. It is written in C++ using C++17 standards and utilizes the FTXUI library for its user interface. Data parsing is handled through `libamdgpu_drm.so`.
+
+## Features
+
+- Real-time monitoring of AMD GPU usage
+- User-friendly interface built with FTXUI
+
+## Requirements
+
+- C++17 compatible compiler
+- FTXUI library
+- `libamdgpu_drm.so`
+
+## Build from Source
+
+### Build FTXUI
+
+To build the FTXUI library, follow these steps:
+
+```sh
+git clone https://github.com/ArthurSonzogni/FTXUI.git
+cd FTXUI
+mkdir -p build && cd build
+cmake .. && make -j $(nproc)
+sudo make install
+
+## Contributing
+Contributions are welcome! Please fork the repository and submit a pull request.
+
+## Acknowledgements
+- FTXUI for the UI framework
+- The developers of libamdgpu_drm.so for data parsing support
+
+Feel free to modify this as needed! If you have any specific sections you'd like to add or change, let me know.
