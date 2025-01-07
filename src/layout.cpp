@@ -1,6 +1,9 @@
 #include "layout.hpp"
 #include <string>
 #include <algorithm>
+#include <ftxui/dom/elements.hpp>
+#include <ftxui/screen/terminal.hpp>
+#include <ftxui/component/screen_interactive.hpp>
 
 using namespace ftxui;
 
