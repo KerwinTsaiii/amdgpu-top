@@ -11,7 +11,7 @@ int main() {
     Layout layout;
 
     auto renderer = Renderer([&] {
-        return layout.render();  // 不再需要傳遞 stats
+        return layout.render(); 
     });
 
     auto component = Container::Vertical({
@@ -24,7 +24,6 @@ int main() {
             using namespace std::chrono_literals;
             std::this_thread::sleep_for(1s);
             screen.Post([&] {
-                // 不需要手動獲取 stats，每個 GPU 塊會自己獲取
                 screen.RequestAnimationFrame();
             });
         }
