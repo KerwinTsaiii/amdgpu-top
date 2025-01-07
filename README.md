@@ -19,12 +19,26 @@
 
 To build the FTXUI library, follow these steps:
 
-```sh
+```bash
 git clone https://github.com/ArthurSonzogni/FTXUI.git
 cd FTXUI
 mkdir -p build && cd build
 cmake .. && make -j $(nproc)
 sudo make install
+```
+### Build amdgpu-top
+To build `amdgpu-top`, follow these steps:
+```bash
+mkdir build
+cd build
+cmake ..
+make
+```
+## Usage
+To run `amdgpu-top`, execute the following command:
+```bash
+./amdgpu-top
+```
 
 ## Contributing
 Contributions are welcome! Please fork the repository and submit a pull request.
