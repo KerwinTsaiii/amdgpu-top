@@ -11,7 +11,7 @@ int main() {
     Layout layout;
 
     auto renderer = Renderer([&] {
-        return layout.render();
+        return layout.render(); 
     });
 
     auto component = Container::Vertical({
