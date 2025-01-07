@@ -1,22 +1,25 @@
 #pragma once
 
-#include <ftxui/component/component.hpp>
 #include <ftxui/dom/elements.hpp>
 #include "gpu_stats.hpp"
 
 class Layout {
 public:
     Layout();
-    ftxui::Element render();  // Default render
-    ftxui::Element render(const GPUStats::Stats& stats);  // Render with provided stats
-    GPUStats::Stats getStats() { return gpu_stats.getStats(); }  // Expose stats getter
+    ftxui::Element render();
 
 private:
     GPUStats gpu_stats;
     
-    ftxui::Element renderGPUUsage(const GPUStats::Stats& stats);
-    ftxui::Element renderMemoryUsage(const GPUStats::Stats& stats);
+    // GPU Grid rendering
+    ftxui::Element renderGPUGrid();
+    ftxui::Element renderGPUBlock(const GPUDevice* device);
+    
+    // Individual components
+    ftxui::Element renderGPUUsage(const GPUDevice::Metrics& metrics);
+    ftxui::Element renderMemoryUsage(const GPUDevice::Metrics& metrics);
     ftxui::Element renderUsageBar(const std::string& title, float value, uint32_t clock = 0);
-    ftxui::Element renderInformation(const GPUStats::Stats& stats);
-    ftxui::Element renderProcessTable(const GPUStats::Stats& stats);
+    ftxui::Element renderProcessTable(const GPUDevice* device);
+    
+    static constexpr size_t GRID_COLUMNS = 4;  // 4 columns for up to 8 GPUs
 }; 

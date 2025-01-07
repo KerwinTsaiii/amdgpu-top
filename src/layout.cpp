@@ -9,12 +9,12 @@ Layout::Layout() {
     }
 }
 
-Element Layout::renderGPUUsage(const GPUStats::Stats& stats) {
-    return renderUsageBar("GPU Usage: ", stats.gpu_usage, stats.gpu_clock);
+Element Layout::renderGPUUsage(const GPUDevice::Metrics& metrics) {
+    return renderUsageBar("GPU Usage: ", metrics.gpu_usage, metrics.gpu_clock);
 }
 
-Element Layout::renderMemoryUsage(const GPUStats::Stats& stats) {
-    float memory_percent = (stats.memory_used / stats.memory_total) * 100.0f;
+Element Layout::renderMemoryUsage(const GPUDevice::Metrics& metrics) {
+    float memory_percent = (metrics.memory_used / metrics.memory_total) * 100.0f;
     return renderUsageBar("Memory Usage: ", memory_percent);
 }
 
@@ -45,46 +45,58 @@ Element Layout::renderUsageBar(const std::string& title, float value, uint32_t c
     });
 }
 
-Element Layout::renderInformation(const GPUStats::Stats& stats) {
-    std::vector<Element> info_elements;
+Element Layout::renderGPUBlock(const GPUDevice* device) {
+    if (!device) return text("") | border;  // Empty block for invalid device
+
+    auto metrics = device->getMetrics();
     
-    info_elements.push_back(text("GPU: " + std::string(gpu_stats.getMarketName())));
-    
-    info_elements.push_back(
+    return vbox({
+        text(device->getMarketName()) | bold,
+        renderGPUUsage(metrics),
+        renderMemoryUsage(metrics),
         hbox({
-            text("Temperature: " + std::to_string(stats.temperature) + "°C"),
+            text(std::to_string(metrics.temperature) + "°C"),
             text(" | "),
-            text("Power: " + std::to_string(stats.power_usage) + "W")
-        })
-    );
-
-    info_elements.push_back(
-        hbox({
-            text("GPU Clock: " + std::to_string(stats.gpu_clock) + " MHz"),
+            text(std::to_string(metrics.power_usage) + "W"),
             text(" | "),
-            text("Memory Clock: " + std::to_string(stats.memory_clock) + " MHz")
-        })
-    );
-
-    info_elements.push_back(
-        text("VRAM: " + std::to_string((int)stats.memory_used) + " MB / " + 
-             std::to_string((int)stats.memory_total) + " MB")
-
-    );
-
-    info_elements.push_back(
-        text("VRAM CPU Accessible: " + std::to_string((int)stats.memory_cpu_accessible_used) + " MB / " + 
-             std::to_string((int)stats.memory_cpu_accessible_total) + " MB")
-    );
-
-    return vbox(info_elements) | border;
+            text(std::to_string(metrics.gpu_clock) + "/" + 
+                 std::to_string(metrics.memory_clock) + " MHz")
+        }) | center
+    }) | border;
 }
 
-Element Layout::renderProcessTable(const GPUStats::Stats& stats) {
+Element Layout::renderGPUGrid() {
     std::vector<Element> rows;
+    size_t gpu_count = gpu_stats.getGPUCount();
+    size_t row_count = (gpu_count + GRID_COLUMNS - 1) / GRID_COLUMNS;  // Ceiling division
     
+    for (size_t row = 0; row < row_count; ++row) {
+        std::vector<Element> gpu_blocks;
+        
+        for (size_t col = 0; col < GRID_COLUMNS; ++col) {
+            size_t gpu_index = row * GRID_COLUMNS + col;
+            if (gpu_index < gpu_count) {
+                gpu_blocks.push_back(renderGPUBlock(gpu_stats.getGPU(gpu_index)));
+            } else {
+                gpu_blocks.push_back(text("") | border);  // Empty block for alignment
+            }
+        }
+        
+        rows.push_back(hbox(gpu_blocks));
+    }
+    
+    return vbox(rows);
+}
+
+Element Layout::renderProcessTable(const GPUDevice* device) {
+    if (!device) return text("");
+
+    std::vector<Element> rows;
+    auto processes = device->getProcesses();
+    
+    // Table header
     rows.push_back(
-        hbox(std::vector<Element>{
+        hbox({
             text("PID") | size(WIDTH, EQUAL, 8),
             text("Process") | size(WIDTH, EQUAL, 20),
             text("GFX%") | size(WIDTH, EQUAL, 8),
@@ -95,42 +107,35 @@ Element Layout::renderProcessTable(const GPUStats::Stats& stats) {
         }) | bold
     );
 
-    for (const auto& proc : stats.processes) {
+    // Process rows
+    for (const auto& proc : processes) {
         rows.push_back(
-            hbox(std::vector<Element>{
+            hbox({
                 text(std::to_string(proc.pid)) | size(WIDTH, EQUAL, 8),
                 text(proc.name) | size(WIDTH, EQUAL, 20),
                 text(proc.gfx_usage > 0 ? std::to_string((int)proc.gfx_usage) + "%" : "-") | size(WIDTH, EQUAL, 8),
                 text(proc.compute_usage > 0 ? std::to_string((int)proc.compute_usage) + "%" : "-") | size(WIDTH, EQUAL, 8),
                 text(proc.enc_usage > 0 ? std::to_string((int)proc.enc_usage) + "%" : "-") | size(WIDTH, EQUAL, 8),
                 text(proc.dec_usage > 0 ? std::to_string((int)proc.dec_usage) + "%" : "-") | size(WIDTH, EQUAL, 8),
-                text(std::to_string((int)(proc.memory_usage / (1024*1024))) + " MB") | 
-                    size(WIDTH, EQUAL, 10)
+                text(std::to_string((int)(proc.memory_usage / (1024*1024))) + " MB") | size(WIDTH, EQUAL, 10)
             })
         );
     }
 
     return vbox({
-        text("Processes") | bold | center,
+        text("Processes - " + std::string(device->getMarketName())) | bold | center,
         separator(),
         vbox(rows)
     }) | border;
 }
 
 Element Layout::render() {
-    return render(gpu_stats.getStats());
-}
-
-Element Layout::render(const GPUStats::Stats& stats) {
     return vbox({
         text("AMD GPU Monitor") | bold | center,
         separator(),
-        renderGPUUsage(stats),
-        renderMemoryUsage(stats),
+        renderGPUGrid(),
         separator(),
-        text("Information") | bold | center,
-        renderInformation(stats),
-        separator(),
-        renderProcessTable(stats)
+        // Show process table for the first GPU
+        renderProcessTable(gpu_stats.getGPU(0))
     }) | border;
 } 
