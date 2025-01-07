@@ -29,6 +29,8 @@ sudo make install
 ### Build amdgpu-top
 To build `amdgpu-top`, follow these steps:
 ```bash
+git clone https://github.com/KerwinTsaiii/amdgpu-top.git
+git submodule update --init --recursive
 mkdir build
 cd build
 cmake ..
