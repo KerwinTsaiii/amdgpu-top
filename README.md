@@ -41,6 +41,7 @@ To run `amdgpu-top`, execute the following command:
 ```bash
 ./amdgpu-top
 ```
+![](doc/img/overview.png)
 
 ## Contributing
 Contributions are welcome! Please fork the repository and submit a pull request.
