@@ -1,5 +1,6 @@
 #include "layout.hpp"
 #include <string>
+#include <algorithm>
 
 using namespace ftxui;
 
@@ -88,15 +89,13 @@ Element Layout::renderGPUGrid() {
     return vbox(rows);
 }
 
-Element Layout::renderProcessTable(const GPUDevice* device) {
-    if (!device) return text("");
-
+Element Layout::renderProcessTable() {
     std::vector<Element> rows;
-    auto processes = device->getProcesses();
     
     // Table header
     rows.push_back(
         hbox({
+            text("GPU") | size(WIDTH, EQUAL, 8),
             text("PID") | size(WIDTH, EQUAL, 8),
             text("Process") | size(WIDTH, EQUAL, 20),
             text("GFX%") | size(WIDTH, EQUAL, 8),
@@ -107,10 +106,39 @@ Element Layout::renderProcessTable(const GPUDevice* device) {
         }) | bold
     );
 
-    // Process rows
-    for (const auto& proc : processes) {
+    // Add separator after header
+    rows.push_back(separator());
+
+    // Collect all processes with their GPU index
+    struct ProcessEntry {
+        size_t gpu_index;
+        ProcessInfo proc;
+    };
+    std::vector<ProcessEntry> all_processes;
+
+    // Get processes for each GPU
+    for (size_t i = 0; i < gpu_stats.getGPUCount(); ++i) {
+        const GPUDevice* device = gpu_stats.getGPU(i);
+        if (!device) continue;
+
+        auto processes = device->getProcesses();
+        for (const auto& proc : processes) {
+            all_processes.push_back({i, proc});
+        }
+    }
+
+    // Sort processes by GFX usage in descending order
+    std::sort(all_processes.begin(), all_processes.end(),
+        [](const ProcessEntry& a, const ProcessEntry& b) {
+            return a.proc.gfx_usage > b.proc.gfx_usage;
+        });
+
+    // Add sorted processes to rows
+    for (const auto& entry : all_processes) {
+        const auto& proc = entry.proc;
         rows.push_back(
             hbox({
+                text(std::to_string(entry.gpu_index)) | size(WIDTH, EQUAL, 8),
                 text(std::to_string(proc.pid)) | size(WIDTH, EQUAL, 8),
                 text(proc.name) | size(WIDTH, EQUAL, 20),
                 text(proc.gfx_usage > 0 ? std::to_string((int)proc.gfx_usage) + "%" : "-") | size(WIDTH, EQUAL, 8),
@@ -123,7 +151,7 @@ Element Layout::renderProcessTable(const GPUDevice* device) {
     }
 
     return vbox({
-        text("Processes - " + std::string(device->getMarketName())) | bold | center,
+        text("GPU Processes") | bold | center,
         separator(),
         vbox(rows)
     }) | border;
@@ -135,7 +163,6 @@ Element Layout::render() {
         separator(),
         renderGPUGrid(),
         separator(),
-        // Show process table for the first GPU
-        renderProcessTable(gpu_stats.getGPU(0))
+        renderProcessTable()
     }) | border;
 } 
