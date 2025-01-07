@@ -4,6 +4,7 @@
 #include <ftxui/dom/elements.hpp>
 #include <ftxui/screen/terminal.hpp>
 #include <ftxui/component/screen_interactive.hpp>
+#include <iomanip>
 
 using namespace ftxui;
 
@@ -19,7 +20,19 @@ Element Layout::renderGPUUsage(const GPUDevice::Metrics& metrics) {
 
 Element Layout::renderMemoryUsage(const GPUDevice::Metrics& metrics) {
     float memory_percent = (metrics.memory_used / metrics.memory_total) * 100.0f;
-    return renderUsageBar("Memory Usage: ", memory_percent);
+    
+    std::stringstream vram_ss, cpu_vram_ss;
+    vram_ss << std::fixed << std::setprecision(1) 
+            << metrics.memory_used / 1024.0f << "/"
+            << metrics.memory_total / 1024.0f << "GB";
+            
+    cpu_vram_ss << std::fixed << std::setprecision(1)
+                << " [CPU: "
+                << metrics.memory_cpu_accessible_used / 1024.0f << "/"
+                << metrics.memory_cpu_accessible_total / 1024.0f << "GB]";
+    
+    return renderUsageBar("VRAM: ", memory_percent, 
+                         vram_ss.str() + cpu_vram_ss.str());
 }
 
 Element Layout::renderUsageBar(const std::string& title, float value, uint32_t clock) {
@@ -28,12 +41,31 @@ Element Layout::renderUsageBar(const std::string& title, float value, uint32_t c
     float usage_fraction = value / 100.0f;
     int filled_width = static_cast<int>(usage_fraction * bar_width);
     
-    std::string header;
-    if (clock > 0) {
-        header = title + std::to_string((int)value) + "% @ " + std::to_string(clock) + " MHz";
-    } else {
-        header = title + std::to_string((int)value) + "%";
-    }
+    std::string details = clock > 0 ? std::to_string(clock) + " MHz" : "";
+    std::string header = title + std::to_string((int)value) + "%" + 
+                        (clock > 0 ? " @ " + details : "");
+
+    return vbox({
+        text(header),
+        hbox({
+            filled_width > 0 ?
+                text(std::string(filled_width, ' ')) | bgcolor(Color::Yellow) :
+                text(""),
+            (bar_width - filled_width) > 0 ?
+                text(std::string(bar_width - filled_width, ' ')) :
+                text(""),
+            text("  " + std::to_string((int)value) + "%")
+        }) | border
+    });
+}
+
+Element Layout::renderUsageBar(const std::string& title, float value, const std::string& details) {
+    auto size = Terminal::Size();
+    int bar_width = size.dimx - 4;
+    float usage_fraction = value / 100.0f;
+    int filled_width = static_cast<int>(usage_fraction * bar_width);
+    
+    std::string header = title + std::to_string((int)value) + "% (" + details + ")";
 
     return vbox({
         text(header),
@@ -70,8 +102,15 @@ Element Layout::renderGPUBlock(const GPUDevice* device) {
 }
 
 Element Layout::renderGPUGrid() {
-    std::vector<Element> rows;
     size_t gpu_count = gpu_stats.getGPUCount();
+    
+    // Using single block for single GPU
+    if (gpu_count == 1) {
+        return renderGPUBlock(gpu_stats.getGPU(0));
+    }
+    
+    // Grid display logic for multiple GPUs
+    std::vector<Element> rows;
     size_t row_count = (gpu_count + GRID_COLUMNS - 1) / GRID_COLUMNS;  // Ceiling division
     
     for (size_t row = 0; row < row_count; ++row) {
