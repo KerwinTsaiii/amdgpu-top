@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
 
@@ -32,24 +32,21 @@ jobs:
     - name: Prepare debian package
       run: |
         mkdir -p debian/usr/bin
-        cp build/amd-gpu-top debian/usr/bin/
+        cp build/amdgpu-top debian/usr/bin/
         chmod +x debian/DEBIAN/postinst
         dpkg-deb --build debian
-        mv debian.deb amd-gpu-monitor_0.1.0_amd64.deb
+        mv debian.deb amdgpu-top_0.1.0_amd64.deb
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: amdgpu-top-deb
         path: amdgpu-top_0.1.0_amd64.deb
 
     - name: Upload Release Asset
       if: github.event_name == 'release'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./amdgpu-top_0.1.0_amd64.deb
-        asset_name: amdgpu-top_0.1.0_amd64.deb
-        asset_content_type: application/vnd.debian.binary-package 
+        files: amdgpu-top_0.1.0_amd64.deb
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
