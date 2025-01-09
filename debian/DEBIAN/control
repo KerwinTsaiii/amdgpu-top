@@ -1,5 +1,5 @@
-Package: amd-gpu-monitor
-Version: 1.0.0
+Package: amdgpu-top
+Version: 0.1.0
 Section: utils
 Priority: optional
 Architecture: amd64

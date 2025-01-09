@@ -44,4 +44,4 @@ target_include_directories(amdgpu-top PRIVATE
 target_compile_features(amdgpu-top PRIVATE cxx_std_17) 
 
 # Add install target
-install(TARGETS admgpu-top DESTINATION bin)
+install(TARGETS amdgpu-top DESTINATION bin)
