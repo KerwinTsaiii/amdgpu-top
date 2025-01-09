@@ -7,4 +7,4 @@ Depends: libc6 (>= 2.27), libdrm2, libdrm-amdgpu1
 Maintainer: Kerwin Tsai <Kerwin.Tsai@amd.com>
 Description: AMD GPU Top
  A simple GPU monitoring tool for AMD graphics cards.
- Shows GPU usage, memory usage, temperature, and running processes. 
+ Shows GPU usage, memory usage, temperature, and running processes.
