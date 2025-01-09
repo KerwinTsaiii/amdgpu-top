@@ -42,3 +42,6 @@ target_include_directories(amdgpu-top PRIVATE
 
 # Enable C++17
 target_compile_features(amdgpu-top PRIVATE cxx_std_17) 
+
+# Add install target
+install(TARGETS admgpu-top DESTINATION bin)

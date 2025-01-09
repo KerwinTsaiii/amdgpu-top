@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=AMD GPU Monitor
+Comment=Monitor AMD GPU usage and processes
+Exec=/usr/bin/amd-gpu-monitor
+Icon=amd-gpu-monitor
+Terminal=true
+Type=Application
+Categories=System;Monitor; 
