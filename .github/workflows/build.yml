@@ -1,0 +1,55 @@
+name: Build and Package
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake libdrm-dev libftxui-dev
+
+    - name: Build
+      run: |
+        mkdir build
+        cd build
+        cmake ..
+        make -j$(nproc)
+
+    - name: Prepare debian package
+      run: |
+        mkdir -p debian/usr/bin
+        cp build/amd-gpu-top debian/usr/bin/
+        chmod +x debian/DEBIAN/postinst
+        dpkg-deb --build debian
+        mv debian.deb amd-gpu-monitor_0.1.0_amd64.deb
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: amdgpu-top-deb
+        path: amdgpu-top_0.1.0_amd64.deb
+
+    - name: Upload Release Asset
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./amdgpu-top_0.1.0_amd64.deb
+        asset_name: amdgpu-top_0.1.0_amd64.deb
+        asset_content_type: application/vnd.debian.binary-package 
