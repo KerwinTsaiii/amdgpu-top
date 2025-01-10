@@ -309,7 +309,7 @@ std::vector<ProcessInfo> ProcessMonitor::getProcesses(amdgpu_device_handle devic
             }
 
             if (proc.is_rocm) {
-                // 使用 ROCk API 更新進程信息
+                // Use ROCk API to update process info
                 if (updateROCkProcessInfo(proc, device)) {
                     processes.push_back(proc);
                 }
