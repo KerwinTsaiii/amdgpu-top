@@ -10,8 +10,14 @@
 ## Requirements
 
 - C++17 compatible compiler
-- FTXUI library
+- FTXUI library (build from source)
 - `libamdgpu_drm.so`
+
+## Supported Devices
+- AMD GCN GPU (RX480, RX580...)
+- AMD Radeon dGPU (RX7900XT...)
+- AMD Radeon iGPU (Radeon 780M...)
+- AMD Instinct GPU PCIE/XGMI (MI210, MI250...)
 
 ## Build from Source
 
