@@ -8,6 +8,7 @@
 #include <fstream>
 #include <libdrm/amdgpu_drm.h>
 #include <libdrm/amdgpu.h>
+#include "logger.hpp"
 
 std::vector<ProcessCache> ProcessMonitor::last_process_cache;
 
@@ -18,6 +19,8 @@ bool ProcessMonitor::isDRMFd(int fd_dir_fd, const char* name) {
 }
 
 bool ProcessMonitor::isROCmProcess(pid_t pid) {
+    Logger::debug("Checking if process " + std::to_string(pid) + " is a ROCm process");
+    
     char path[256];
     char buf[1024];
     bool has_rocm_lib = false;
@@ -68,6 +71,8 @@ bool ProcessMonitor::isROCmProcess(pid_t pid) {
     }
     
     // Must satisfy both conditions: has ROCm library and has PASID
+    Logger::debug("Process " + std::to_string(pid) + " is" + 
+                 (has_rocm_lib && has_pasid ? "" : " not") + " a ROCm process");
     return has_rocm_lib && has_pasid;
 }
 
@@ -179,14 +184,24 @@ bool ProcessMonitor::updateROCkProcessInfo(ProcessInfo& proc, amdgpu_device_hand
 }
 
 bool ProcessMonitor::getROCkComputeUsage(ProcessInfo& proc, amdgpu_device_handle device) {
+    Logger::debug("Getting compute usage for ROCm process " + std::to_string(proc.pid));
+    
     // Use ROCk API to get compute usage
     // TODO: Implement this function
+    
+    Logger::debug("Compute usage for process " + std::to_string(proc.pid) + ": " + 
+                 std::to_string(proc.compute_usage) + "%");
     return true;
 }
 
 bool ProcessMonitor::getROCkMemoryUsage(ProcessInfo& proc, amdgpu_device_handle device) {
+    Logger::debug("Getting memory usage for ROCm process " + std::to_string(proc.pid));
+    
     // Use ROCk API to get memory usage
     // TODO: Implement this function
+    
+    Logger::debug("Memory usage for process " + std::to_string(proc.pid) + ": " + 
+                 std::to_string(proc.memory_usage / (1024*1024)) + " MB");
     return true;
 }
 

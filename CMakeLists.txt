@@ -6,6 +6,16 @@ endif(COMMAND cmake_policy)
 
 project(amdgpu-top)
 
+# Add debug build type
+set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel")
+
+# Debug build settings
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_definitions(DEBUG_BUILD)
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
+    message(STATUS "Debug build enabled")
+endif()
+
 # Find required packages
 find_package(ftxui REQUIRED)
 find_package(PkgConfig REQUIRED)

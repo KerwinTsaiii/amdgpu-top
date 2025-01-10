@@ -6,6 +6,7 @@
 #include <atomic>
 #include <iostream>
 #include <cstring>
+#include "logger.hpp"
 
 using namespace ftxui;
 
@@ -22,6 +23,11 @@ void printUsage() {
 }
 
 int main(int argc, char* argv[]) {
+    #ifdef DEBUG_BUILD
+    Logger::init("/tmp/amdgpu-top.log", Logger::DEBUG);
+    Logger::info("Starting amdgpu-top in debug mode");
+    #endif
+
     bool text_mode = false;
 
     // Parse command line arguments
