@@ -48,6 +48,7 @@ mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=Debug ..
 make
 ```
+In debug mode, logs will be stored in `/tmp/amdgpu-top.log`.
 
 ## Usage
 To run `amdgpu-top`, execute the following command:
