@@ -39,9 +39,16 @@ git clone https://github.com/KerwinTsaiii/amdgpu-top.git
 git submodule update --init --recursive
 mkdir build
 cd build
-cmake ..
+cmake -DCMAKE_BUILD_TYPE=Release ..
 make
 ```
+#### Debug Build
+```bash
+mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+make
+```
+
 ## Usage
 To run `amdgpu-top`, execute the following command:
 ```bash
