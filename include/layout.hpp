@@ -7,6 +7,7 @@ class Layout {
 public:
     Layout();
     ftxui::Element render();
+    std::string getMetricsText() const;
 
 private:
     GPUStats gpu_stats;
@@ -23,4 +24,8 @@ private:
     ftxui::Element renderProcessTable();
     
     static constexpr size_t GRID_COLUMNS = 4;  // 4 columns for up to 8 GPUs
+    
+    // Text mode helpers
+    std::string formatGPUMetrics(const GPUDevice* device) const;
+    std::string formatProcessInfo(const std::vector<ProcessInfo>& processes) const;
 }; 

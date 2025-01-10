@@ -207,4 +207,60 @@ Element Layout::render() {
         separator(),
         renderProcessTable()
     }) | border;
+}
+
+std::string Layout::getMetricsText() const {
+    std::stringstream ss;
+    
+    for (size_t i = 0; i < gpu_stats.getGPUCount(); i++) {
+        const GPUDevice* device = gpu_stats.getGPU(i);
+        if (!device) continue;
+        
+        ss << formatGPUMetrics(device) << "\n";
+        
+        auto processes = device->getProcesses();
+        if (!processes.empty()) {
+            ss << formatProcessInfo(processes) << "\n";
+        }
+    }
+    
+    return ss.str();
+}
+
+std::string Layout::formatGPUMetrics(const GPUDevice* device) const {
+    auto metrics = device->getMetrics();
+    std::stringstream ss;
+    
+    ss << "GPU: " << device->getMarketName() << "\n"
+       << "GPU Usage: " << metrics.gpu_usage << "% @ " << metrics.gpu_clock << " MHz\n"
+       << "VRAM: " << std::fixed << std::setprecision(1)
+       << metrics.memory_used / 1024.0f << "/"
+       << metrics.memory_total / 1024.0f << "GB"
+       << " [CPU: " << metrics.memory_cpu_accessible_used / 1024.0f << "/"
+       << metrics.memory_cpu_accessible_total / 1024.0f << "GB]\n"
+       << "Temperature: " << metrics.temperature << "°C, Power: " 
+       << metrics.power_usage << "W\n";
+    
+    return ss.str();
+}
+
+std::string Layout::formatProcessInfo(const std::vector<ProcessInfo>& processes) const {
+    std::stringstream ss;
+    
+    ss << "Processes:\n"
+       << "PID\tName\t\tGFX%\tCMP%\tENC%\tDEC%\tVRAM\n"
+       << "------------------------------------------------------------\n";
+    
+    for (const auto& proc : processes) {
+        ss << proc.pid << "\t"
+           << std::left << std::setw(16) << proc.name << "\t"
+           << std::right
+           << std::setw(3) << (int)proc.gfx_usage << "\t"
+           << std::setw(3) << (int)proc.compute_usage << "\t"
+           << std::setw(3) << (int)proc.enc_usage << "\t"
+           << std::setw(3) << (int)proc.dec_usage << "\t"
+           << std::setw(5) << proc.memory_usage / (1024*1024) << "MB\n";
+    }
+    
+    return ss.str();
 } 
