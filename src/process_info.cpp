@@ -17,64 +17,149 @@ bool ProcessMonitor::isDRMFd(int fd_dir_fd, const char* name) {
     return ret == 0 && (stat_buf.st_mode & S_IFMT) == S_IFCHR && major(stat_buf.st_rdev) == 226;
 }
 
+bool ProcessMonitor::isROCmProcess(pid_t pid) {
+    char path[256];
+    char buf[1024];
+    bool has_rocm_lib = false;
+    bool has_pasid = false;
+    
+    // Check if the process has ROCm libraries
+    snprintf(path, sizeof(path), "/proc/%d/maps", pid);
+    FILE *fp = fopen(path, "r");
+    if (fp) {
+        while (fgets(buf, sizeof(buf), fp)) {
+            if (strstr(buf, "libhsa-runtime64.so") ||
+                strstr(buf, "librocm_smi64.so") ||
+                strstr(buf, "libamdgpu.so")) {
+                has_rocm_lib = true;
+                break;
+            }
+        }
+        fclose(fp);
+    }
+    
+    // If no ROCm libraries found, return false
+    if (!has_rocm_lib) {
+        return false;
+    }
+    
+    // 2. Check PASID in fdinfo
+    snprintf(path, sizeof(path), "/proc/%d/fdinfo", pid);
+    DIR *dr = opendir(path);
+    if (dr) {
+        struct dirent *de;
+        while ((de = readdir(dr)) != NULL) {
+            if (isdigit(de->d_name[0])) {
+                snprintf(path, sizeof(path), "/proc/%d/fdinfo/%s", pid, de->d_name);
+                fp = fopen(path, "r");
+                if (fp) {
+                    while (fgets(buf, sizeof(buf), fp)) {
+                        if (strstr(buf, "pasid:")) {
+                            has_pasid = true;
+                            break;
+                        }
+                    }
+                    fclose(fp);
+                    if (has_pasid) break;
+                }
+            }
+        }
+        closedir(dr);
+    }
+    
+    // Must satisfy both conditions: has ROCm library and has PASID
+    return has_rocm_lib && has_pasid;
+}
+
 bool ProcessMonitor::parseFdinfo(FILE* fdinfo_file, ProcessInfo& proc, unsigned& client_id) {
     char line[256];
     bool has_engine = false;
     client_id = 0;
 
+    // Check if it's a ROCm process first
+    proc.is_rocm = isROCmProcess(proc.pid);
+
+    // Read basic information
     while (fgets(line, sizeof(line), fdinfo_file)) {
         char *key, *val;
         char *saveptr;
         
-        // Split line into key and value
         key = strtok_r(line, ":", &saveptr);
         if (!key) continue;
         
-        // Skip leading whitespace in value
         val = saveptr;
-        while (*val && isspace(*val)) val++;
-        
-        // Parse client ID
-        if (strstr(key, "drm-client-id")) {
+        while (val && *val && isspace(*val)) val++;
+        if (!val) continue;
+
+        // Parse basic information
+        if (strstr(key, "pasid")) {
+            char *endptr;
+            uint32_t pasid = strtoul(val, &endptr, 10);
+            if (proc.is_rocm && pasid > 0) {
+                proc.rock_info.pasid = pasid;
+            }
+        }
+        else if (strstr(key, "drm-client-id")) {
             char *endptr;
             client_id = strtoul(val, &endptr, 10);
-            if (endptr == val) continue;
         }
-        // Parse VRAM usage
         else if (strstr(key, "drm-memory-vram")) {
             char *endptr;
             unsigned long mem_kb = strtoul(val, &endptr, 10);
-            if (endptr == val || strcmp(endptr, " KiB\n")) continue;
-            
-            proc.memory_usage = mem_kb * 1024;
-            has_engine = true;
+            if (endptr != val && !strcmp(endptr, " KiB\n")) {
+                proc.memory_usage = mem_kb * 1024;
+                has_engine = true;
+            }
         }
-        // Parse engine usage times
-        else {
-            char *endptr;
-            uint64_t time_spent;
-            
-            if (strstr(key, "drm-engine-gfx")) {
-                time_spent = strtoull(val, &endptr, 10);
-                if (endptr == val || strcmp(endptr, " ns\n")) continue;
+    }
+
+    // If it's a ROCm process, return true
+    if (proc.is_rocm) {
+        return true;
+    }
+
+    // Non-ROCm processes need to parse engine usage time
+    rewind(fdinfo_file);
+    
+    while (fgets(line, sizeof(line), fdinfo_file)) {
+        char *key, *val;
+        char *saveptr;
+        
+        key = strtok_r(line, ":", &saveptr);
+        if (!key) continue;
+        
+        val = saveptr;
+        while (val && *val && isspace(*val)) val++;
+        if (!val) continue;
+
+        // Parse engine usage time
+        char *endptr;
+        uint64_t time_spent;
+        
+        if (strstr(key, "drm-engine-gfx")) {
+            time_spent = strtoull(val, &endptr, 10);
+            if (endptr != val && !strcmp(endptr, " ns\n")) {
                 proc.gfx_engine_used = time_spent;
                 has_engine = true;
             }
-            else if (strstr(key, "drm-engine-compute")) {
-                time_spent = strtoull(val, &endptr, 10);
-                if (endptr == val || strcmp(endptr, " ns\n")) continue;
+        }
+        else if (strstr(key, "drm-engine-compute")) {
+            time_spent = strtoull(val, &endptr, 10);
+            if (endptr != val && !strcmp(endptr, " ns\n")) {
                 proc.compute_engine_used = time_spent;
                 has_engine = true;
             }
-            else if (strstr(key, "drm-engine-dec")) {
-                time_spent = strtoull(val, &endptr, 10);
-                if (endptr == val || strcmp(endptr, " ns\n")) continue;
+        }
+        else if (strstr(key, "drm-engine-dec")) {
+            time_spent = strtoull(val, &endptr, 10);
+            if (endptr != val && !strcmp(endptr, " ns\n")) {
                 proc.dec_engine_used = time_spent;
                 has_engine = true;
             }
-            else if (strstr(key, "drm-engine-enc")) {
-                time_spent = strtoull(val, &endptr, 10);
-                if (endptr == val || strcmp(endptr, " ns\n")) continue;
+        }
+        else if (strstr(key, "drm-engine-enc")) {
+            time_spent = strtoull(val, &endptr, 10);
+            if (endptr != val && !strcmp(endptr, " ns\n")) {
                 proc.enc_engine_used = time_spent;
                 has_engine = true;
             }
@@ -82,6 +167,27 @@ bool ProcessMonitor::parseFdinfo(FILE* fdinfo_file, ProcessInfo& proc, unsigned&
     }
 
     return has_engine;
+}
+
+bool ProcessMonitor::updateROCkProcessInfo(ProcessInfo& proc, amdgpu_device_handle device) {
+    if (!proc.is_rocm) return false;
+
+    bool success = false;
+    success |= getROCkComputeUsage(proc, device);
+    success |= getROCkMemoryUsage(proc, device);
+    return success;
+}
+
+bool ProcessMonitor::getROCkComputeUsage(ProcessInfo& proc, amdgpu_device_handle device) {
+    // Use ROCk API to get compute usage
+    // TODO: Implement this function
+    return true;
+}
+
+bool ProcessMonitor::getROCkMemoryUsage(ProcessInfo& proc, amdgpu_device_handle device) {
+    // Use ROCk API to get memory usage
+    // TODO: Implement this function
+    return true;
 }
 
 uint64_t ProcessMonitor::getTimeDiffNs(const timespec& start, const timespec& end) {
@@ -202,31 +308,38 @@ std::vector<ProcessInfo> ProcessMonitor::getProcesses(amdgpu_device_handle devic
                 std::getline(comm_file, proc.name);
             }
 
-            // Find matching cache entry
-            const ProcessCache* cache_entry = nullptr;
-            for (const auto& cache : last_process_cache) {
-                if (cache.pid == pid && cache.client_id == client_id && cache.pdev == pdev) {
-                    cache_entry = &cache;
-                    break;
+            if (proc.is_rocm) {
+                // 使用 ROCk API 更新進程信息
+                if (updateROCkProcessInfo(proc, device)) {
+                    processes.push_back(proc);
                 }
+            } else {
+                // Find matching cache entry
+                const ProcessCache* cache_entry = nullptr;
+                for (const auto& cache : last_process_cache) {
+                    if (cache.pid == pid && cache.client_id == client_id && cache.pdev == pdev) {
+                        cache_entry = &cache;
+                        break;
+                    }
+                }
+
+                // Update usage based on engine times
+                updateEngineUsage(proc, cache_entry, current_time);
+
+                // Store current state in cache
+                ProcessCache new_cache;
+                new_cache.pid = pid;
+                new_cache.client_id = client_id;
+                new_cache.pdev = pdev;
+                new_cache.gfx_engine_used = proc.gfx_engine_used;
+                new_cache.compute_engine_used = proc.compute_engine_used;
+                new_cache.enc_engine_used = proc.enc_engine_used;
+                new_cache.dec_engine_used = proc.dec_engine_used;
+                new_cache.last_measurement_time = current_time;
+                current_cache.push_back(new_cache);
+
+                processes.push_back(proc);
             }
-
-            // Update usage based on engine times
-            updateEngineUsage(proc, cache_entry, current_time);
-
-            // Store current state in cache
-            ProcessCache new_cache;
-            new_cache.pid = pid;
-            new_cache.client_id = client_id;
-            new_cache.pdev = pdev;
-            new_cache.gfx_engine_used = proc.gfx_engine_used;
-            new_cache.compute_engine_used = proc.compute_engine_used;
-            new_cache.enc_engine_used = proc.enc_engine_used;
-            new_cache.dec_engine_used = proc.dec_engine_used;
-            new_cache.last_measurement_time = current_time;
-            current_cache.push_back(new_cache);
-
-            processes.push_back(proc);
         }
 
         closedir(fd_dir);

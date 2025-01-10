@@ -6,14 +6,23 @@
 #include <sys/types.h>
 #include <libdrm/amdgpu.h>
 #include <time.h>
+#include <libdrm/amdgpu_drm.h>
+#include <xf86drm.h>
+
+struct ROCkProcessInfo {
+    uint32_t pasid;
+    uint64_t vram_usage;
+    uint64_t compute_time;
+    timespec last_timestamp;
+};
 
 struct ProcessInfo {
     pid_t pid;
     std::string name;
-    float gfx_usage = 0.0f;
-    float compute_usage = 0.0f;
-    float enc_usage = 0.0f;
-    float dec_usage = 0.0f;
+    float gfx_usage = 0;
+    float compute_usage = 0;
+    float enc_usage = 0;
+    float dec_usage = 0;
     uint64_t memory_usage = 0;
     
     // Track engine usage time
@@ -21,7 +30,10 @@ struct ProcessInfo {
     uint64_t compute_engine_used = 0;
     uint64_t enc_engine_used = 0;
     uint64_t dec_engine_used = 0;
-    timespec last_measurement_time;
+    timespec last_measurement_time = {0, 0};
+    bool is_rocm = false;
+    unsigned client_id = 0;
+    ROCkProcessInfo rock_info;
 };
 
 struct ProcessCache {
@@ -52,4 +64,9 @@ private:
     static uint64_t getTimeDiffNs(const timespec& start, const timespec& end);
     
     static std::vector<ProcessCache> last_process_cache;
+    
+    static bool updateROCkProcessInfo(ProcessInfo& proc, amdgpu_device_handle device);
+    static bool getROCkComputeUsage(ProcessInfo& proc, amdgpu_device_handle device);
+    static bool getROCkMemoryUsage(ProcessInfo& proc, amdgpu_device_handle device);
+    static bool isROCmProcess(pid_t pid);
 }; 

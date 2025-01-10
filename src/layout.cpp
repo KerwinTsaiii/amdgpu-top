@@ -140,6 +140,7 @@ Element Layout::renderProcessTable() {
             text("GPU") | size(WIDTH, EQUAL, 8),
             text("PID") | size(WIDTH, EQUAL, 8),
             text("Process") | size(WIDTH, EQUAL, 20),
+            text("ROCm") | size(WIDTH, EQUAL, 6),
             text("GFX%") | size(WIDTH, EQUAL, 8),
             text("CMP%") | size(WIDTH, EQUAL, 8),
             text("ENC%") | size(WIDTH, EQUAL, 8),
@@ -183,6 +184,7 @@ Element Layout::renderProcessTable() {
                 text(std::to_string(entry.gpu_index)) | size(WIDTH, EQUAL, 8),
                 text(std::to_string(proc.pid)) | size(WIDTH, EQUAL, 8),
                 text(proc.name) | size(WIDTH, EQUAL, 20),
+                text(proc.is_rocm ? "Yes" : "No") | size(WIDTH, EQUAL, 6),
                 text(proc.gfx_usage > 0 ? std::to_string((int)proc.gfx_usage) + "%" : "-") | size(WIDTH, EQUAL, 8),
                 text(proc.compute_usage > 0 ? std::to_string((int)proc.compute_usage) + "%" : "-") | size(WIDTH, EQUAL, 8),
                 text(proc.enc_usage > 0 ? std::to_string((int)proc.enc_usage) + "%" : "-") | size(WIDTH, EQUAL, 8),
@@ -248,13 +250,14 @@ std::string Layout::formatProcessInfo(const std::vector<ProcessInfo>& processes)
     std::stringstream ss;
     
     ss << "Processes:\n"
-       << "PID\tName\t\tGFX%\tCMP%\tENC%\tDEC%\tVRAM\n"
+       << "PID\tName\t\tROCm\tGFX%\tCMP%\tENC%\tDEC%\tVRAM\n"
        << "------------------------------------------------------------\n";
     
     for (const auto& proc : processes) {
         ss << proc.pid << "\t"
            << std::left << std::setw(16) << proc.name << "\t"
            << std::right
+           << std::setw(3) << (proc.is_rocm ? "Yes" : "No") << "\t"
            << std::setw(3) << (int)proc.gfx_usage << "\t"
            << std::setw(3) << (int)proc.compute_usage << "\t"
            << std::setw(3) << (int)proc.enc_usage << "\t"
