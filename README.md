@@ -39,9 +39,17 @@ git clone https://github.com/KerwinTsaiii/amdgpu-top.git
 git submodule update --init --recursive
 mkdir build
 cd build
-cmake ..
+cmake -DCMAKE_BUILD_TYPE=Release ..
 make
 ```
+#### Debug Build
+```bash
+mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+make
+```
+In debug mode, logs will be stored in `/tmp/amdgpu-top.log`.
+
 ## Usage
 To run `amdgpu-top`, execute the following command:
 ```bash
