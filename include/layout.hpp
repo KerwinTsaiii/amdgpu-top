@@ -2,6 +2,7 @@
 
 #include <ftxui/dom/elements.hpp>
 #include "gpu_stats.hpp"
+#include "process_info.hpp"
 
 class Layout {
 public:
@@ -22,6 +23,7 @@ private:
     ftxui::Element renderUsageBar(const std::string& title, float value, uint32_t clock = 0);
     ftxui::Element renderUsageBar(const std::string& title, float value, const std::string& details);
     ftxui::Element renderProcessTable();
+    ftxui::Element renderProcessRow(const ProcessInfo& proc);
     
     static constexpr size_t GRID_COLUMNS = 4;  // 4 columns for up to 8 GPUs
     

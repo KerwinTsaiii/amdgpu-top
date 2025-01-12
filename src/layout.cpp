@@ -5,6 +5,7 @@
 #include <ftxui/screen/terminal.hpp>
 #include <ftxui/component/screen_interactive.hpp>
 #include <iomanip>
+#include "logger.hpp"
 
 using namespace ftxui;
 
@@ -133,31 +134,20 @@ Element Layout::renderGPUGrid() {
 
 Element Layout::renderProcessTable() {
     std::vector<Element> rows;
-    
-    // Table header
-    rows.push_back(
-        hbox({
-            text("GPU") | size(WIDTH, EQUAL, 8),
-            text("PID") | size(WIDTH, EQUAL, 8),
-            text("Process") | size(WIDTH, EQUAL, 20),
-            text("ROCm") | size(WIDTH, EQUAL, 6),
-            text("GFX%") | size(WIDTH, EQUAL, 8),
-            text("CMP%") | size(WIDTH, EQUAL, 8),
-            text("ENC%") | size(WIDTH, EQUAL, 8),
-            text("DEC%") | size(WIDTH, EQUAL, 8),
-            text("VRAM") | size(WIDTH, EQUAL, 10)
-        }) | bold
-    );
+
+    // Add header
+    rows.push_back(hbox({
+        text("PID") | size(WIDTH, EQUAL, 8),
+        text("Name") | size(WIDTH, EQUAL, 20),
+        text("GFX%") | size(WIDTH, EQUAL, 8),
+        text("CMP%") | size(WIDTH, EQUAL, 8),
+        text("ENC%") | size(WIDTH, EQUAL, 8),
+        text("DEC%") | size(WIDTH, EQUAL, 8),
+        text("VRAM") | size(WIDTH, EQUAL, 10)
+    }) | bold);
 
     // Add separator after header
     rows.push_back(separator());
-
-    // Collect all processes with their GPU index
-    struct ProcessEntry {
-        size_t gpu_index;
-        ProcessInfo proc;
-    };
-    std::vector<ProcessEntry> all_processes;
 
     // Get processes for each GPU
     for (size_t i = 0; i < gpu_stats.getGPUCount(); ++i) {
@@ -165,40 +155,45 @@ Element Layout::renderProcessTable() {
         if (!device) continue;
 
         auto processes = device->getProcesses();
-        for (const auto& proc : processes) {
-            all_processes.push_back({i, proc});
-        }
-    }
+        Logger::debug("Found " + std::to_string(processes.size()) + 
+                     " processes for GPU " + std::to_string(i));
 
-    // Sort processes by GFX usage in descending order
-    std::sort(all_processes.begin(), all_processes.end(),
-        [](const ProcessEntry& a, const ProcessEntry& b) {
-            return a.proc.gfx_usage > b.proc.gfx_usage;
+        //Sort processes by memory usage
+        std::sort(processes.begin(), processes.end(), [](const ProcessInfo& a, const ProcessInfo& b) {
+            return a.memory_usage > b.memory_usage;
         });
 
-    // Add sorted processes to rows
-    for (const auto& entry : all_processes) {
-        const auto& proc = entry.proc;
-        rows.push_back(
-            hbox({
-                text(std::to_string(entry.gpu_index)) | size(WIDTH, EQUAL, 8),
-                text(std::to_string(proc.pid)) | size(WIDTH, EQUAL, 8),
-                text(proc.name) | size(WIDTH, EQUAL, 20),
-                text(proc.is_rocm ? "Yes" : "No") | size(WIDTH, EQUAL, 6),
-                text(proc.gfx_usage > 0 ? std::to_string((int)proc.gfx_usage) + "%" : "-") | size(WIDTH, EQUAL, 8),
-                text(proc.compute_usage > 0 ? std::to_string((int)proc.compute_usage) + "%" : "-") | size(WIDTH, EQUAL, 8),
-                text(proc.enc_usage > 0 ? std::to_string((int)proc.enc_usage) + "%" : "-") | size(WIDTH, EQUAL, 8),
-                text(proc.dec_usage > 0 ? std::to_string((int)proc.dec_usage) + "%" : "-") | size(WIDTH, EQUAL, 8),
-                text(std::to_string((int)(proc.memory_usage / (1024*1024))) + " MB") | size(WIDTH, EQUAL, 10)
-            })
-        );
+        // Add each process to the table
+        for (const auto& proc : processes) {
+            rows.push_back(renderProcessRow(proc));
+            Logger::debug("Added process " + std::to_string(proc.pid) + 
+                         " to table with memory " + std::to_string(proc.memory_usage));
+        }
     }
 
     return vbox({
         text("GPU Processes") | bold | center,
         separator(),
-        vbox(rows)
+        vbox(rows) | flex
     }) | border;
+}
+
+Element Layout::renderProcessRow(const ProcessInfo& proc) {
+    Logger::debug("Rendering process " + std::to_string(proc.pid) + 
+                 " with memory usage: " + std::to_string(proc.memory_usage) + " bytes");
+
+    // Convert bytes to MiB
+    float memory_mib = proc.memory_usage / (1024.0f * 1024.0f);
+
+    return hbox({
+        text(std::to_string(proc.pid)) | size(WIDTH, EQUAL, 8),
+        text(proc.name) | size(WIDTH, EQUAL, 20),
+        text(proc.gfx_usage > 0 ? std::to_string((int)proc.gfx_usage) + "%" : "-") | size(WIDTH, EQUAL, 8),
+        text(proc.compute_usage > 0 ? std::to_string((int)proc.compute_usage) + "%" : "-") | size(WIDTH, EQUAL, 8),
+        text(proc.enc_usage > 0 ? std::to_string((int)proc.enc_usage) + "%" : "-") | size(WIDTH, EQUAL, 8),
+        text(proc.dec_usage > 0 ? std::to_string((int)proc.dec_usage) + "%" : "-") | size(WIDTH, EQUAL, 8),
+        text(proc.memory_usage > 0 ? std::to_string((int)memory_mib) + " MiB" : "-") | size(WIDTH, EQUAL, 10)
+    });
 }
 
 Element Layout::render() {
@@ -262,7 +257,7 @@ std::string Layout::formatProcessInfo(const std::vector<ProcessInfo>& processes)
            << std::setw(3) << (int)proc.compute_usage << "\t"
            << std::setw(3) << (int)proc.enc_usage << "\t"
            << std::setw(3) << (int)proc.dec_usage << "\t"
-           << std::setw(5) << proc.memory_usage / (1024*1024) << "MB\n";
+           << std::setw(5) << proc.memory_usage << "KiB\n";
     }
     
     return ss.str();
