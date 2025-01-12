@@ -2,6 +2,8 @@
 
 `amdgpu-top` is a tool for monitoring AMD GPU usage. It is written in C++ using C++17 standards and utilizes the FTXUI library for its user interface. Data parsing is handled through `libamdgpu_drm.so`.
 
+![](doc/img/overview.png)
+
 ## Features
 
 - Real-time monitoring of AMD GPU usage
@@ -54,7 +56,6 @@ To run `amdgpu-top`, execute the following command:
 ```bash
 ./amdgpu-top
 ```
-![](doc/img/overview.png)
 
 ## Contributing
 Contributions are welcome! Please fork the repository and submit a pull request.
