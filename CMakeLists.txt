@@ -22,6 +22,28 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(DRM REQUIRED libdrm)
 pkg_check_modules(AMDGPU REQUIRED libdrm_amdgpu)
 
+# Find uthash
+find_path(UTHASH_INCLUDE_DIR uthash.h
+    PATHS
+    /usr/include
+    /usr/local/include
+    ${CMAKE_SOURCE_DIR}/external
+)
+
+if(NOT UTHASH_INCLUDE_DIR)
+    # Download uthash if not found
+    message(STATUS "uthash.h not found in system, downloading...")
+    file(DOWNLOAD
+        "https://raw.githubusercontent.com/troydhanson/uthash/master/src/uthash.h"
+        "${CMAKE_SOURCE_DIR}/external/uthash.h"
+        SHOW_PROGRESS
+    )
+    set(UTHASH_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/external")
+endif()
+
+# Create external directory if it doesn't exist
+file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/external)
+
 # Create executable
 add_executable(amdgpu-top 
     src/main.cpp
@@ -46,6 +68,7 @@ target_link_libraries(amdgpu-top
 target_include_directories(amdgpu-top PRIVATE
     ${DRM_INCLUDE_DIRS}
     ${AMDGPU_INCLUDE_DIRS}
+    ${UTHASH_INCLUDE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
