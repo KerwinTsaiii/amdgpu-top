@@ -116,7 +116,7 @@ bool ProcessMonitor::parseFdinfo(FILE* fdinfo_file, ProcessInfo& proc, unsigned&
         }
 
         // Parse engine usage times
-        if (strstr(key, "drm-engine-gfx")) {
+        if (strstr(key, DRM_GFX_OLD) || strstr(key, DRM_GFX_NEW)) {
             char *endptr;
             uint64_t time_spent = strtoull(val, &endptr, 10);
             if (endptr != val && !strcmp(endptr, " ns")) {
@@ -125,7 +125,7 @@ bool ProcessMonitor::parseFdinfo(FILE* fdinfo_file, ProcessInfo& proc, unsigned&
                 Logger::debug("    -> Found GFX engine time: " + std::to_string(time_spent) + " ns");
             }
         }
-        else if (strstr(key, "drm-engine-compute")) {
+        else if (strstr(key, DRM_COMPUTE_OLD) || strstr(key, DRM_COMPUTE_NEW)) {
             char *endptr;
             uint64_t time_spent = strtoull(val, &endptr, 10);
             if (endptr != val && !strcmp(endptr, " ns")) {
@@ -134,7 +134,7 @@ bool ProcessMonitor::parseFdinfo(FILE* fdinfo_file, ProcessInfo& proc, unsigned&
                 Logger::debug("    -> Found Compute engine time: " + std::to_string(time_spent) + " ns");
             }
         }
-        else if (strstr(key, "drm-engine-dec")) {
+        else if (strstr(key, DRM_DEC_OLD) || strstr(key, DRM_DEC_NEW)) {
             char *endptr;
             uint64_t time_spent = strtoull(val, &endptr, 10);
             if (endptr != val && !strcmp(endptr, " ns")) {
@@ -143,7 +143,7 @@ bool ProcessMonitor::parseFdinfo(FILE* fdinfo_file, ProcessInfo& proc, unsigned&
                 Logger::debug("    -> Found Decode engine time: " + std::to_string(time_spent) + " ns");
             }
         }
-        else if (strstr(key, "drm-engine-enc")) {
+        else if (strstr(key, DRM_ENC_OLD) || strstr(key, DRM_ENC_NEW)) {
             char *endptr;
             uint64_t time_spent = strtoull(val, &endptr, 10);
             if (endptr != val && !strcmp(endptr, " ns")) {
