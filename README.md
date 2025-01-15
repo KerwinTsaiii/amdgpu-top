@@ -55,6 +55,12 @@ In debug mode, logs will be stored in `/tmp/amdgpu-top.log`.
 To run `amdgpu-top`, execute the following command:
 ```bash
 ./amdgpu-top
+
+# tty mode
+./amdgpu-top -t
+
+# debug mode
+./amdgpu-top -d
 ```
 
 ## Contributing
