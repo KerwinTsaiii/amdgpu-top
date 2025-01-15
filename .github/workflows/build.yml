@@ -51,7 +51,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: amdgpu-top-deb
-        path: amdgpu-top_0.1.0_amd64.deb
+        path: amdgpu-top_0.1.1_amd64.deb
 
     - name: Upload Release Asset
       if: github.event_name == 'release'
